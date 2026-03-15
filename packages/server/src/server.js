@@ -23,6 +23,7 @@ import { EventRouter } from './router.js';
 import {
   extractAndRouteVisuals, extractAndRouteMedia, extractAndRouteSuggestions,
   extractButtons, extractInlineBlocks, runCustomInterceptors,
+  stripCanvasCommands, enhanceWithSmartComponents,
 } from './visual-interceptor.js';
 import { createAgentServer } from '@shaykec/agent-web/server';
 import {
@@ -106,6 +107,8 @@ export async function startServer(config = {}, options = {}) {
     hooks: {
       onMessage: (envelope) => {
         if (envelope.type === 'chat:assistant' && envelope.payload?.text) {
+          envelope.payload.text = enhanceWithSmartComponents(envelope.payload.text);
+
           const { cleanText, buttons } = extractButtons(envelope.payload.text);
           if (buttons.length > 0) {
             envelope.payload.text = cleanText;
@@ -118,16 +121,18 @@ export async function startServer(config = {}, options = {}) {
           }
         }
 
+        if (envelope.type === 'chat:assistant' && envelope.payload?.text) {
+          const rawText = envelope.payload.text;
+          extractAndRouteVisuals(rawText, tierManager, router);
+          extractAndRouteMedia(rawText, router, autoRoutedMediaUrls);
+          extractAndRouteSuggestions(rawText, tierManager);
+          runCustomInterceptors(rawText, customInterceptors, router);
+          envelope.payload.text = stripCanvasCommands(envelope.payload.text);
+        }
+
         const data = JSON.stringify(envelope);
         tierManager.broadcastWs(data);
         tierManager.broadcastSse(data);
-
-        if (envelope.type === 'chat:assistant') {
-          extractAndRouteVisuals(envelope.payload?.text, tierManager, router);
-          extractAndRouteMedia(envelope.payload?.text, router, autoRoutedMediaUrls);
-          extractAndRouteSuggestions(envelope.payload?.text, tierManager);
-          runCustomInterceptors(envelope.payload?.text, customInterceptors, router);
-        }
 
         const sid = envelope.sessionId || envelope.payload?.sessionId;
         if (sid) {

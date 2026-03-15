@@ -21,7 +21,7 @@ serverUrl: http://localhost:4567
 
 - assertBody:
     jsonPath: "$.mcpServers[0]"
-    expected: "filesystem"
+    expected: "agora-ping"
 
 - request:
     method: GET

@@ -7,6 +7,8 @@ import {
   extractAndRouteMedia,
   detectMediaUrl,
   runCustomInterceptors,
+  stripCanvasCommands,
+  enhanceWithSmartComponents,
 } from './visual-interceptor.js';
 
 const mockTierManager = { broadcastWs: vi.fn(), broadcastSse: vi.fn() };
@@ -212,6 +214,161 @@ describe('visual-interceptor', () => {
     it('handles no interceptors', () => {
       runCustomInterceptors('text', [], mockRouter);
       expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('extractAndRouteVisuals — canvas commands', () => {
+    it('routes explicit canvas:html commands', () => {
+      const text = '<!-- canvas:html: {"html":"<h1>Hello</h1>"} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(1);
+      const envelope = mockRouter.routeVisualCommand.mock.calls[0][0];
+      expect(envelope.type).toBe('canvas:html');
+      expect(envelope.payload.html).toBe('<h1>Hello</h1>');
+    });
+
+    it('routes canvas:web-embed commands', () => {
+      const text = '<!-- canvas:web-embed: {"url":"https://example.com","title":"Ref"} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(1);
+      const envelope = mockRouter.routeVisualCommand.mock.calls[0][0];
+      expect(envelope.type).toBe('canvas:web-embed');
+      expect(envelope.payload.url).toBe('https://example.com');
+    });
+
+    it('routes canvas:celebrate commands', () => {
+      const text = '<!-- canvas:celebrate: {"type":"xp","xpAwarded":20} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(1);
+      expect(mockRouter.routeVisualCommand.mock.calls[0][0].type).toBe('canvas:celebrate');
+    });
+
+    it('ignores unknown canvas types', () => {
+      const text = '<!-- canvas:unknown-type: {"data":"test"} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+
+    it('skips malformed JSON in canvas commands', () => {
+      const text = '<!-- canvas:html: {not valid json} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+
+    it('routes both mermaid and canvas commands from same text', () => {
+      const text = '```mermaid\ngraph TD\n  A-->B\n```\n<!-- canvas:html: {"html":"<p>Hi</p>"} -->';
+      extractAndRouteVisuals(text, mockTierManager, mockRouter);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(2);
+      expect(mockRouter.routeVisualCommand.mock.calls[0][0].type).toBe('canvas:diagram');
+      expect(mockRouter.routeVisualCommand.mock.calls[1][0].type).toBe('canvas:html');
+    });
+  });
+
+  describe('stripCanvasCommands', () => {
+    it('removes canvas command comments from text', () => {
+      const text = 'Hello\n<!-- canvas:html: {"html":"<h1>Hi</h1>"} -->\nWorld';
+      const result = stripCanvasCommands(text);
+      expect(result).toBe('Hello\n\nWorld');
+      expect(result).not.toContain('canvas:html');
+    });
+
+    it('removes multiple canvas commands', () => {
+      const text = '<!-- canvas:celebrate: {"type":"xp"} -->\nText\n<!-- canvas:web-embed: {"url":"x"} -->';
+      const result = stripCanvasCommands(text);
+      expect(result).toBe('Text');
+    });
+
+    it('collapses triple+ newlines to double', () => {
+      const text = 'A\n<!-- canvas:html: {"html":"x"} -->\n\n\nB';
+      const result = stripCanvasCommands(text);
+      expect(result).not.toMatch(/\n{3,}/);
+    });
+
+    it('handles null/empty input', () => {
+      expect(stripCanvasCommands(null)).toBeNull();
+      expect(stripCanvasCommands('')).toBe('');
+    });
+
+    it('returns text unchanged when no canvas commands', () => {
+      const text = 'Just regular text with <!-- buttons: {"id":"x"} --> comments';
+      expect(stripCanvasCommands(text)).toBe(text);
+    });
+  });
+
+  describe('enhanceWithSmartComponents', () => {
+    it('converts blockquote tips to card components', () => {
+      const text = '> **Pro Tip:** Always use const for immutable values in JavaScript.';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).toContain('<!-- card:');
+      expect(result).toContain('"type":"tip"');
+      expect(result).toContain('Always use const');
+    });
+
+    it('converts blockquote warnings to warning cards', () => {
+      const text = '> **Warning:** Never store passwords in plain text in your database.';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).toContain('<!-- card:');
+      expect(result).toContain('"type":"warning"');
+    });
+
+    it('converts numbered lists with bold titles to list components', () => {
+      const text = '1. **Setup** — Install dependencies\n2. **Build** — Compile the project\n3. **Deploy** — Push to production';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).toContain('<!-- list:');
+      expect(result).toContain('"style":"numbered"');
+    });
+
+    it('converts bullet lists with bold titles to card-style lists', () => {
+      const text = '- **React** — UI framework\n- **Node.js** — Server runtime\n- **PostgreSQL** — Database';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).toContain('<!-- list:');
+      expect(result).toContain('"style":"cards"');
+    });
+
+    it('skips enhancement when smart comments already exist', () => {
+      const text = '> **Pro Tip:** Test\n<!-- buttons: {"id":"x","type":"single","options":[{"label":"A","value":"a"}]} -->';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).toBe(text);
+    });
+
+    it('handles null/empty input', () => {
+      expect(enhanceWithSmartComponents(null)).toBeNull();
+      expect(enhanceWithSmartComponents('')).toBe('');
+    });
+
+    it('returns plain text unchanged', () => {
+      const text = 'Just some regular text without any special patterns.';
+      expect(enhanceWithSmartComponents(text)).toBe(text);
+    });
+
+    it('skips short blockquote content', () => {
+      const text = '> **Pro Tip:** Short';
+      const result = enhanceWithSmartComponents(text);
+      expect(result).not.toContain('<!-- card:');
+    });
+  });
+
+  describe('media embed open links', () => {
+    it('YouTube embed includes Open on YouTube link', () => {
+      const seenUrls = new Set();
+      extractAndRouteMedia('https://www.youtube.com/watch?v=dQw4w9WgXcQ', mockRouter, seenUrls);
+      const html = mockRouter.routeVisualCommand.mock.calls[0][0].payload.html;
+      expect(html).toContain('Open on YouTube');
+      expect(html).toContain('target="_blank"');
+    });
+
+    it('image embed includes Open full size link', () => {
+      const seenUrls = new Set();
+      extractAndRouteMedia('https://example.com/photo.png', mockRouter, seenUrls);
+      const html = mockRouter.routeVisualCommand.mock.calls[0][0].payload.html;
+      expect(html).toContain('Open full size');
+    });
+
+    it('video embed includes Download video link', () => {
+      const seenUrls = new Set();
+      extractAndRouteMedia('https://example.com/clip.mp4', mockRouter, seenUrls);
+      const html = mockRouter.routeVisualCommand.mock.calls[0][0].payload.html;
+      expect(html).toContain('Download video');
     });
   });
 });

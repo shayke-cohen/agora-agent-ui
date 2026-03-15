@@ -7,6 +7,11 @@
 import { createEnvelope, MSG_CHAT_SUGGESTIONS } from '@agora-agent/protocol';
 
 const MERMAID_FENCE_RE = /```mermaid\s*\n([\s\S]*?)```/g;
+const CANVAS_CMD_RE = /<!--\s*(canvas:\w[\w-]*):\s*(\{[\s\S]*?\})\s*-->/g;
+const VALID_CANVAS_TYPES = new Set([
+  'canvas:html', 'canvas:web-embed', 'canvas:celebrate',
+  'canvas:dashboard', 'canvas:code',
+]);
 const SUGGESTIONS_RE = /<!--\s*suggestions:\s*(\[[\s\S]*?\])\s*-->/;
 const BUTTONS_RE = /<!--\s*buttons:\s*(\{[\s\S]*?\})\s*-->/g;
 const VALID_BUTTON_TYPES = ['single', 'multi', 'rating'];
@@ -29,7 +34,8 @@ const URL_RE = /https?:\/\/[^\s)<>"]+/g;
 const MAX_AUTO_MEDIA = 3;
 
 /**
- * Extract mermaid code blocks and route as canvas:diagram envelopes.
+ * Extract mermaid code blocks and explicit canvas commands, routing
+ * each as a typed envelope to connected canvas clients.
  */
 export function extractAndRouteVisuals(text, tierManager, router) {
   if (!text || typeof text !== 'string') return;
@@ -48,6 +54,19 @@ export function extractAndRouteVisuals(text, tierManager, router) {
       autoRouted: true,
     }, 'bridge');
     router.routeVisualCommand(envelope);
+  }
+
+  CANVAS_CMD_RE.lastIndex = 0;
+  let cmdMatch;
+  while ((cmdMatch = CANVAS_CMD_RE.exec(text)) !== null) {
+    const type = cmdMatch[1];
+    if (!VALID_CANVAS_TYPES.has(type)) continue;
+    try {
+      const payload = JSON.parse(cmdMatch[2]);
+      payload.autoRouted = true;
+      const envelope = createEnvelope(type, payload, 'bridge');
+      router.routeVisualCommand(envelope);
+    } catch { /* malformed JSON — skip */ }
   }
 }
 
@@ -229,12 +248,13 @@ function escapeHtml(str) {
 
 function buildMediaHtml(url, type) {
   const safe = escapeHtml(url);
+  const linkStyle = 'font-size:13px;color:#58a6ff;text-decoration:none;';
   switch (type) {
     case 'youtube': {
       const m = url.match(YOUTUBE_RE);
       if (!m) return null;
       return {
-        html: `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://www.youtube.com/embed/${m[1]}?rel=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:8px;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div>`,
+        html: `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://www.youtube.com/embed/${m[1]}?rel=0" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:8px;" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe></div><p style="margin-top:12px;text-align:center;"><a href="${safe}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">Open on YouTube ↗</a></p>`,
         title: 'YouTube Video',
         subtype: 'youtube',
       };
@@ -243,20 +263,20 @@ function buildMediaHtml(url, type) {
       const m = url.match(VIMEO_RE);
       if (!m) return null;
       return {
-        html: `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://player.vimeo.com/video/${m[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:8px;" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe></div>`,
+        html: `<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:8px;"><iframe src="https://player.vimeo.com/video/${m[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;border-radius:8px;" allow="autoplay;fullscreen;picture-in-picture" allowfullscreen></iframe></div><p style="margin-top:12px;text-align:center;"><a href="${safe}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">Open on Vimeo ↗</a></p>`,
         title: 'Vimeo Video',
         subtype: 'vimeo',
       };
     }
     case 'image':
       return {
-        html: `<div style="text-align:center;padding:16px 0;"><img src="${safe}" style="max-width:100%;max-height:80vh;border-radius:8px;" /></div>`,
+        html: `<div style="text-align:center;padding:16px 0;"><img src="${safe}" style="max-width:100%;max-height:80vh;border-radius:8px;" /><p style="margin-top:12px;"><a href="${safe}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">Open full size ↗</a></p></div>`,
         title: 'Image',
         subtype: 'image',
       };
     case 'video':
       return {
-        html: `<div style="text-align:center;"><video controls style="max-width:100%;border-radius:8px;"><source src="${safe}" /></video></div>`,
+        html: `<div style="text-align:center;"><video controls style="max-width:100%;border-radius:8px;"><source src="${safe}" /></video><p style="margin-top:12px;"><a href="${safe}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">Download video ↗</a></p></div>`,
         title: 'Video',
         subtype: 'video',
       };
@@ -296,6 +316,85 @@ export function extractAndRouteMedia(text, router, seenUrls) {
       autoRouted: true,
     }, 'bridge');
     router.routeVisualCommand(envelope);
+  }
+}
+
+/**
+ * Remove `<!-- canvas:TYPE {...} -->` comments from text so they don't
+ * render as raw HTML in the chat bubble.
+ */
+export function stripCanvasCommands(text) {
+  if (!text || typeof text !== 'string') return text;
+  return text.replace(CANVAS_CMD_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+/**
+ * Auto-enhance plain markdown responses with smart components.
+ * Only runs when the message contains NO existing smart component comments.
+ * Wrapped in try/catch so a regex failure never crashes the server.
+ */
+let enhanceCounter = 0;
+function nextId(prefix) { return `${prefix}-auto-${++enhanceCounter}`; }
+
+const HAS_SMART_COMMENT_RE = /<!--\s*(buttons|list|progress|card|code|steps|suggestions):/;
+
+export function enhanceWithSmartComponents(text) {
+  if (!text || typeof text !== 'string') return text;
+  if (HAS_SMART_COMMENT_RE.test(text)) return text;
+
+  try {
+    let enhanced = text;
+
+    enhanced = enhanced.replace(
+      /(?:^|\n)>\s*\*\*((?:💡|🔑|✅|⚡|📌)\s*)?(?:(?:Pro\s*)?Tip|Best Practice|Remember|Key Insight|Key Takeaway)[:\s!]*\*\*\s*([^\n]+(?:\n>\s*[^\n]+)*)/gi,
+      (_, _icon, content) => {
+        const clean = content.replace(/\n>\s*/g, ' ').trim();
+        if (clean.length < 10) return _;
+        return `\n<!-- card: ${JSON.stringify({ id: nextId('card'), type: 'tip', title: 'Pro Tip', content: clean })} -->`;
+      }
+    );
+
+    enhanced = enhanced.replace(
+      /(?:^|\n)>\s*\*\*((?:⚠️|🚫|❌)\s*)?(?:Warning|Caution|Watch Out|Common Mistake|Pitfall|Anti-Pattern)[:\s!]*\*\*\s*([^\n]+(?:\n>\s*[^\n]+)*)/gi,
+      (_, _icon, content) => {
+        const clean = content.replace(/\n>\s*/g, ' ').trim();
+        if (clean.length < 10) return _;
+        return `\n<!-- card: ${JSON.stringify({ id: nextId('card'), type: 'warning', title: 'Watch Out', content: clean })} -->`;
+      }
+    );
+
+    const numberedListMatch = enhanced.match(/(?:^|\n)((?:\d+\.\s+\*\*[^*]+\*\*[^\n]*\n?){3,})/);
+    if (numberedListMatch) {
+      const items = numberedListMatch[1].trim().split('\n')
+        .map(l => l.trim()).filter(Boolean)
+        .map(line => {
+          const m = line.replace(/^\d+\.\s+/, '').match(/^\*\*([^*]+)\*\*\s*[-—:]*\s*(.*)/);
+          return m ? { title: m[1].trim(), description: m[2].trim() || undefined } : null;
+        }).filter(Boolean);
+      if (items.length >= 3) {
+        enhanced = enhanced.replace(numberedListMatch[0],
+          `\n<!-- list: ${JSON.stringify({ id: nextId('list'), style: 'numbered', items })} -->`);
+      }
+    }
+
+    const bulletListMatch = enhanced.match(/(?:^|\n)((?:[-*]\s+\*\*[^*]+\*\*[^\n]*\n?){3,})/);
+    if (bulletListMatch) {
+      const items = bulletListMatch[1].trim().split('\n')
+        .map(l => l.trim()).filter(Boolean)
+        .map(line => {
+          const m = line.replace(/^[-*]\s+/, '').match(/^\*\*([^*]+)\*\*\s*[-—:]*\s*(.*)/);
+          return m ? { title: m[1].trim(), description: m[2].trim() || undefined } : null;
+        }).filter(Boolean);
+      if (items.length >= 3) {
+        enhanced = enhanced.replace(bulletListMatch[0],
+          `\n<!-- list: ${JSON.stringify({ id: nextId('list'), style: 'cards', items })} -->`);
+      }
+    }
+
+    return enhanced;
+  } catch (err) {
+    console.error('[visual-interceptor] enhanceWithSmartComponents error:', err.message);
+    return text;
   }
 }
 

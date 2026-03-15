@@ -116,4 +116,70 @@ describe('Chat', () => {
     fireEvent.click(sendBtn);
     expect(onSend).not.toHaveBeenCalled();
   });
+
+  describe('client-side fallback parsing', () => {
+    it('parses buttons from raw HTML comments when server did not extract them', () => {
+      const messages = [{
+        role: 'assistant',
+        text: 'Choose:\n<!-- buttons: {"id":"q1","type":"single","options":[{"label":"Yes","value":"yes"},{"label":"No","value":"no"}]} -->',
+      }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      expect(screen.getByText('Yes')).toBeInTheDocument();
+      expect(screen.getByText('No')).toBeInTheDocument();
+    });
+
+    it('parses card blocks from raw HTML comments', () => {
+      const messages = [{
+        role: 'assistant',
+        text: '<!-- card: {"id":"c1","type":"tip","title":"Parsed Tip","content":"Client-side parsed"} -->',
+      }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      expect(screen.getByText('Parsed Tip')).toBeInTheDocument();
+    });
+
+    it('strips canvas commands from displayed text', () => {
+      const messages = [{
+        role: 'assistant',
+        text: 'Hello\n<!-- canvas:html: {"html":"<h1>Hi</h1>"} -->\nWorld',
+      }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      expect(document.body.textContent).not.toContain('canvas:html');
+    });
+
+    it('strips suggestion comments from displayed text', () => {
+      const messages = [{
+        role: 'assistant',
+        text: 'Hello\n<!-- suggestions: [{"label":"A","text":"a"}] -->',
+      }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      expect(document.body.textContent).not.toContain('suggestions:');
+    });
+
+    it('does not re-parse messages that already have buttons', () => {
+      const messages = [{
+        role: 'assistant',
+        text: 'Already parsed',
+        buttons: [{ id: 'q1', type: 'single', options: [{ label: 'Pre', value: 'pre' }] }],
+      }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      expect(screen.getByText('Pre')).toBeInTheDocument();
+    });
+  });
+
+  describe('markdown CSS', () => {
+    it('renders markdown content with chat-markdown class', () => {
+      const messages = [{ role: 'assistant', text: 'Hello **world**' }];
+      render(<Chat {...defaultProps} messages={messages} />);
+      const mdDiv = document.querySelector('.chat-markdown');
+      expect(mdDiv).toBeInTheDocument();
+    });
+
+    it('injects style block with list and blockquote rules', () => {
+      render(<Chat {...defaultProps} messages={[]} />);
+      const styleTag = document.querySelector('style');
+      expect(styleTag).toBeInTheDocument();
+      expect(styleTag.textContent).toContain('.chat-markdown ol');
+      expect(styleTag.textContent).toContain('.chat-markdown blockquote');
+    });
+  });
 });

@@ -10,7 +10,7 @@
  */
 
 import { resolve, join } from 'path';
-import { existsSync, mkdirSync, writeFileSync, cpSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync, readFileSync, cpSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -71,13 +71,20 @@ async function handleInit(name) {
 
   mkdirSync(targetDir, { recursive: true });
   mkdirSync(join(targetDir, 'skills', 'hello'), { recursive: true });
+  mkdirSync(join(targetDir, 'skills', 'agora-canvas'), { recursive: true });
 
   writeFileSync(join(targetDir, 'agora.config.js'), `export default {
   name: '${name}',
   port: 3456,
 
   agent: {
-    systemPrompt: 'You are a helpful AI assistant. Use diagrams to explain concepts visually. Use suggestion chips to guide the conversation.',
+    systemPrompt: [
+      'You are a helpful AI assistant.',
+      'You have rich visual capabilities — read the agora-canvas skill for the full API.',
+      'Use mermaid diagrams to explain concepts visually.',
+      'Use inline cards for tips and warnings, progress bars for tracking, and suggestion chips to guide the conversation.',
+      'Use canvas:html for images and videos, canvas:web-embed for external sites.',
+    ].join('\\n'),
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
     // mcpServers: {
@@ -116,13 +123,36 @@ When the user says hello or asks for a greeting, respond warmly and offer to hel
 ## Procedure
 
 1. Greet the user by name if known, otherwise warmly
-2. Briefly explain what you can help with
-3. Offer suggestion chips for common tasks:
+2. Briefly explain what you can help with using an info card:
 
-\`\`\`
-<!-- suggestions: [{"label":"Show me a diagram","text":"Draw a diagram of a web app architecture"},{"label":"Help me code","text":"Help me write some code"}] -->
-\`\`\`
+\\\`\\\`\\\`
+<!-- card: {"id":"welcome","type":"tip","title":"Getting Started","content":"I can help you with diagrams, code review, planning, and more. Just ask!"} -->
+\\\`\\\`\\\`
+
+3. Show a quick architecture overview with a diagram:
+
+\\\`\\\`\\\`mermaid
+graph LR
+  User[You] -->|ask| Agent[AI Agent]
+  Agent -->|diagrams| Canvas[Visual Panel]
+  Agent -->|text| Chat[Chat Panel]
+\\\`\\\`\\\`
+
+4. Offer suggestion chips for common tasks:
+
+\\\`\\\`\\\`
+<!-- suggestions: [{"label":"Show me a diagram","text":"Draw a diagram of a web app architecture"},{"label":"Help me code","text":"Help me write some code"},{"label":"Review code","text":"Review my code for issues"}] -->
+\\\`\\\`\\\`
 `);
+
+  // Copy the framework canvas API skill
+  const canvasSkillSrc = join(__dirname, '..', '..', '..', 'skills', 'agora-canvas', 'SKILL.md');
+  const canvasSkillDst = join(targetDir, 'skills', 'agora-canvas', 'SKILL.md');
+  if (existsSync(canvasSkillSrc)) {
+    writeFileSync(canvasSkillDst, readFileSync(canvasSkillSrc, 'utf-8'));
+  } else {
+    writeFileSync(canvasSkillDst, '# Agora Canvas API\\n\\nSee https://github.com/shayke-cohen/agora-agent-ui for the full canvas API reference.\\n');
+  }
 
   writeFileSync(join(targetDir, 'package.json'), JSON.stringify({
     name,
@@ -139,9 +169,10 @@ When the user says hello or asks for a greeting, respond warmly and offer to hel
 
   console.log(`
   Created ${name}/ with:
-    agora.config.js    — Agent configuration
-    skills/hello/      — Example skill
-    package.json       — Project dependencies
+    agora.config.js           — Agent configuration
+    skills/hello/             — Example skill
+    skills/agora-canvas/      — Canvas API reference skill
+    package.json              — Project dependencies
 
   Next steps:
     cd ${name}

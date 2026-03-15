@@ -3,7 +3,7 @@
  * Part of the fixed shell (framework-owned).
  */
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo } from 'react';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 
@@ -28,6 +28,61 @@ function renderMarkdown(text) {
   if (!text) return '';
   const html = marked.parse(text, { breaks: true });
   return DOMPurify.sanitize(html);
+}
+
+const BUTTONS_RE = /<!--\s*buttons:\s*(\{[\s\S]*?\})\s*-->/g;
+const VALID_BTN_TYPES = ['single', 'multi', 'rating'];
+const SUGGESTIONS_RE = /<!--\s*suggestions:\s*(\[[\s\S]*?\])\s*-->/;
+const CANVAS_CMD_RE = /<!--\s*canvas:\w[\w-]*:\s*\{[\s\S]*?\}\s*-->/g;
+const BLOCK_PATTERNS = [
+  { re: /<!--\s*list:\s*(\{[\s\S]*?\})\s*-->/g, type: 'list', required: ['items'] },
+  { re: /<!--\s*progress:\s*(\{[\s\S]*?\})\s*-->/g, type: 'progress', required: ['current', 'total'] },
+  { re: /<!--\s*card:\s*(\{[\s\S]*?\})\s*-->/g, type: 'card', required: ['content'] },
+  { re: /<!--\s*code:\s*(\{[\s\S]*?\})\s*-->/g, type: 'code', required: ['code'] },
+  { re: /<!--\s*steps:\s*(\{[\s\S]*?\})\s*-->/g, type: 'steps', required: ['steps'] },
+];
+
+function parseButtonsFromText(text) {
+  if (!text) return { cleanText: '', buttons: [] };
+  const buttons = [];
+  let cleanText = text;
+  for (const m of [...text.matchAll(BUTTONS_RE)]) {
+    let p;
+    try { p = JSON.parse(m[1]); } catch { continue; }
+    if (!p || typeof p !== 'object') continue;
+    if (typeof p.id !== 'string' || !p.id) continue;
+    if (!VALID_BTN_TYPES.includes(p.type)) continue;
+    if (!Array.isArray(p.options) || p.options.length === 0) continue;
+    const opts = p.options.filter(o => o && typeof o.label === 'string' && typeof o.value === 'string');
+    if (opts.length === 0) continue;
+    buttons.push({ id: p.id, type: p.type, prompt: typeof p.prompt === 'string' ? p.prompt : undefined, options: opts });
+    cleanText = cleanText.replace(m[0], '');
+  }
+  return { cleanText: cleanText.trim(), buttons };
+}
+
+function parseBlocksFromText(text) {
+  if (!text) return { cleanText: '', blocks: [] };
+  const blocks = [];
+  let cleanText = text;
+  for (const { re, type, required } of BLOCK_PATTERNS) {
+    re.lastIndex = 0;
+    for (const m of [...text.matchAll(re)]) {
+      let p;
+      try { p = JSON.parse(m[1]); } catch { continue; }
+      if (!p || typeof p !== 'object') continue;
+      if (typeof p.id !== 'string' || !p.id) continue;
+      if (required.some(k => p[k] == null)) continue;
+      blocks.push({ blockType: type, ...p });
+      cleanText = cleanText.replace(m[0], '');
+    }
+  }
+  return { cleanText: cleanText.trim(), blocks };
+}
+
+function stripCommentsFromText(text) {
+  if (!text) return text;
+  return text.replace(SUGGESTIONS_RE, '').replace(CANVAS_CMD_RE, '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function InlineButtons({ buttons, onSend }) {
@@ -55,7 +110,7 @@ function InlineBlocks({ blocks }) {
       return (
         <div key={block.id} style={{ ...styles.blockCard, borderLeft: `3px solid ${colors[block.type] || '#58a6ff'}` }}>
           {block.title && <div style={{ fontWeight: 600, marginBottom: '4px', color: colors[block.type] }}>{block.title}</div>}
-          <div style={{ fontSize: '13px' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content) }} />
+          <div className="chat-markdown" style={{ fontSize: '13px' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(block.content) }} />
         </div>
       );
     }
@@ -108,9 +163,26 @@ export default function Chat({ messages, onSend, onStop, isStreaming, suggestion
   const messagesEndRef = useRef(null);
   const [input, setInput] = useState('');
 
+  const processedMessages = useMemo(() => {
+    return messages.map(msg => {
+      if (msg.role !== 'assistant' || msg._streaming) return msg;
+      if (msg.buttons || msg.blocks) return msg;
+      if (!msg.text) return msg;
+      const hasComment = /<!--\s*(buttons|list|progress|card|code|steps|suggestions|canvas:)/.test(msg.text);
+      if (!hasComment) return msg;
+      const { cleanText: t1, buttons } = parseButtonsFromText(msg.text);
+      const { cleanText: t2, blocks } = parseBlocksFromText(t1);
+      const text = stripCommentsFromText(t2);
+      const enriched = { ...msg, text };
+      if (buttons.length > 0) enriched.buttons = buttons;
+      if (blocks.length > 0) enriched.blocks = blocks;
+      return enriched;
+    });
+  }, [messages]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [processedMessages]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -125,8 +197,27 @@ export default function Chat({ messages, onSend, onStop, isStreaming, suggestion
 
   return (
     <div style={styles.container}>
+      <style>{`
+        .chat-markdown ol, .chat-markdown ul {
+          padding-left: 1.5em;
+          margin: 4px 0;
+        }
+        .chat-markdown ol { list-style-type: decimal; }
+        .chat-markdown ul { list-style-type: disc; }
+        .chat-markdown li { margin: 2px 0; }
+        .chat-markdown li > ol, .chat-markdown li > ul { margin: 2px 0; }
+        .chat-markdown p { margin: 4px 0; }
+        .chat-markdown p:first-child { margin-top: 0; }
+        .chat-markdown p:last-child { margin-bottom: 0; }
+        .chat-markdown blockquote {
+          border-left: 3px solid rgba(255,255,255,0.2);
+          padding-left: 12px;
+          margin: 6px 0;
+          opacity: 0.85;
+        }
+      `}</style>
       <div style={styles.messages}>
-        {messages.map((msg, i) => {
+        {processedMessages.map((msg, i) => {
           if (msg.role === 'user') {
             return <div key={i} style={styles.userMsg}>{msg.text}</div>;
           }
@@ -136,7 +227,7 @@ export default function Chat({ messages, onSend, onStop, isStreaming, suggestion
           if (msg.role === 'assistant') {
             return (
               <div key={i} style={styles.assistantMsg}>
-                <div dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} />
+                <div className="chat-markdown" dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }} />
                 {msg.buttons && <InlineButtons buttons={msg.buttons} onSend={onSend} />}
                 {msg.blocks && <InlineBlocks blocks={msg.blocks} />}
               </div>
