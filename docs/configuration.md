@@ -23,6 +23,16 @@ export default {
       'Skill',             // Skill file reading
     ],
     permissionMode: 'bypassPermissions',  // 'default' | 'bypassPermissions'
+    mcpServers: {                          // MCP servers available to the agent
+      'my-database': {                     // Local MCP server (spawned as child process)
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-postgres'],
+        env: { DATABASE_URL: 'postgres://localhost/mydb' },
+      },
+      'remote-api': {                      // Remote MCP server (SSE connection)
+        url: 'https://mcp.example.com/sse',
+      },
+    },
   },
 
   // ─── Skills / Plugins ──────────────────────────────────
@@ -106,6 +116,43 @@ Configuration for the Claude Code CLI agent.
 | `systemPrompt` | `string` | `''` | Instructions for the agent. Tip: use an array joined with `\n` for readability. |
 | `tools` | `string[]` | `['Bash(*)', 'Read', ...]` | Claude Code tools to enable. |
 | `permissionMode` | `string` | `'bypassPermissions'` | Permission mode for tool execution. |
+| `mcpServers` | `object` | `{}` | MCP servers the agent can use. See below. |
+
+#### `agent.mcpServers`
+
+**Type:** `Object<string, McpServerConfig>`
+**Default:** `{}`
+
+Connect [Model Context Protocol](https://modelcontextprotocol.io/) servers to give the agent access to external tools and data sources. Each key is a server name, and the value describes how to connect.
+
+**Local MCP server** (spawned as a child process):
+
+```javascript
+mcpServers: {
+  'my-database': {
+    command: 'npx',                                      // CLI binary to run
+    args: ['-y', '@modelcontextprotocol/server-postgres'], // Arguments
+    env: { DATABASE_URL: 'postgres://localhost/mydb' },    // Environment variables (optional)
+  },
+}
+```
+
+**Remote MCP server** (SSE connection):
+
+```javascript
+mcpServers: {
+  'remote-api': {
+    url: 'https://mcp.example.com/sse',  // SSE endpoint URL
+  },
+}
+```
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `command` | `string` | For local | CLI binary to spawn |
+| `args` | `string[]` | For local | Command-line arguments |
+| `env` | `object` | No | Environment variables passed to the process |
+| `url` | `string` | For remote | SSE endpoint URL for remote MCP servers |
 
 ### `plugins`
 

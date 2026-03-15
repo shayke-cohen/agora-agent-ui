@@ -1,0 +1,54 @@
+# Test: ProjectPilot Demo API Endpoints
+# Suite: regression
+# Platform: server
+# Tags: demo, projectpilot, api
+
+serverUrl: http://localhost:4568
+---
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ProjectPilot"
+
+- assertBody:
+    jsonPath: "$.status"
+    expected: "ok"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "memory"
+
+- request:
+    method: GET
+    url: /api/project-stats
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.sprints"
+    expected: 0
+
+- assertBody:
+    jsonPath: "$.velocity"
+    expected: 0
+
+- assertResponseTime: 500
+
+- request:
+    method: GET
+    url: /api/config
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.branding.title"
+    expected: "ProjectPilot"
+
+- assertBody:
+    jsonPath: "$.accent"
+    expected: "#3fb950"

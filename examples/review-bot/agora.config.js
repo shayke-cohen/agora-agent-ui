@@ -1,6 +1,6 @@
 export default {
   name: 'ReviewBot',
-  port: 3456,
+  port: 4567,
 
   agent: {
     systemPrompt: [
@@ -23,6 +23,12 @@ export default {
     ].join('\n'),
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
+    mcpServers: {
+      'filesystem': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', process.cwd()],
+      },
+    },
   },
 
   plugins: [

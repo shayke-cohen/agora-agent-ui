@@ -1,0 +1,76 @@
+# Test: OpsConsole Demo API Endpoints
+# Suite: regression
+# Platform: server
+# Tags: demo, opsconsole, api
+
+serverUrl: http://localhost:4569
+---
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "OpsConsole"
+
+- assertBody:
+    jsonPath: "$.status"
+    expected: "ok"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "filesystem"
+
+- request:
+    method: GET
+    url: /api/service-health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.services[0].name"
+    expected: "api-gateway"
+
+- assertBody:
+    jsonPath: "$.services[3].status"
+    expected: "degraded"
+
+- assertBody:
+    jsonPath: "$.incidents.active"
+    expected: 1
+
+- assertResponseTime: 500
+
+- request:
+    method: GET
+    url: /api/incidents
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.active[0].id"
+    expected: "INC-2024-042"
+
+- assertBody:
+    jsonPath: "$.active[0].severity"
+    expected: "warning"
+
+- assertBody:
+    jsonPath: "$.active[0].service"
+    expected: "cache"
+
+- request:
+    method: GET
+    url: /api/config
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.branding.title"
+    expected: "OpsConsole"
+
+- assertBody:
+    jsonPath: "$.accent"
+    expected: "#f0883e"

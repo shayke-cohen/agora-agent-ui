@@ -1,0 +1,51 @@
+# Test: Multiple Demo Instances Running Simultaneously
+# Suite: regression
+# Platform: server
+# Tags: demo, multi-instance, integration
+
+serverUrl: http://localhost:4567
+---
+# ReviewBot health
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "filesystem"
+
+# ProjectPilot health (cross-port)
+- request:
+    method: GET
+    url: http://localhost:4568/health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ProjectPilot"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "memory"
+
+# OpsConsole health (cross-port)
+- request:
+    method: GET
+    url: http://localhost:4569/health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "OpsConsole"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "filesystem"

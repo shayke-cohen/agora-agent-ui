@@ -1,0 +1,20 @@
+# Test: ReviewBot Demo UI
+# Suite: regression
+# Platform: web
+# Tags: demo, reviewbot, ui
+
+url: http://localhost:4567
+---
+- assertVisible:
+    text: "ReviewBot"
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- assertVisible:
+    text: "Send"
+- assertVisible:
+    text: "Review a file"
+- assertVisible:
+    text: "Best practices"
+- assertVisible:
+    text: "Security check"
+- takeScreenshot: "reviewbot-home"

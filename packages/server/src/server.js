@@ -84,6 +84,10 @@ export function startServer(config = {}, options = {}) {
     agentConfig.plugins = config.plugins;
   }
 
+  if (config.agent?.mcpServers && Object.keys(config.agent.mcpServers).length > 0) {
+    agentConfig.mcpServers = config.agent.mcpServers;
+  }
+
   const autoRoutedMediaUrls = new Set();
   const sessionTitleSet = new Set();
   const customInterceptors = config.interceptors || [];
@@ -353,7 +357,8 @@ function handleRequest(req, res, ctx) {
 
   // Health check
   if (req.method === 'GET' && pathname === '/health') {
-    sendJson(res, 200, { status: 'ok', name: ctx.config.name || 'Agora Agent', tier: ctx.tierManager.getTierInfo(), uptime: process.uptime() });
+    const mcpNames = ctx.config.agent?.mcpServers ? Object.keys(ctx.config.agent.mcpServers) : [];
+    sendJson(res, 200, { status: 'ok', name: ctx.config.name || 'Agora Agent', tier: ctx.tierManager.getTierInfo(), uptime: process.uptime(), mcpServers: mcpNames });
     return;
   }
 

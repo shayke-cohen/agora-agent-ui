@@ -80,6 +80,13 @@ async function handleInit(name) {
     systemPrompt: 'You are a helpful AI assistant. Use diagrams to explain concepts visually. Use suggestion chips to guide the conversation.',
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
+    // mcpServers: {
+    //   'my-server': {
+    //     command: 'npx',
+    //     args: ['-y', '@modelcontextprotocol/server-example'],
+    //     env: {},
+    //   },
+    // },
   },
 
   plugins: [

@@ -1,6 +1,6 @@
 export default {
   name: 'OpsConsole',
-  port: 3458,
+  port: 4569,
 
   agent: {
     systemPrompt: [
@@ -24,6 +24,12 @@ export default {
     ].join('\n'),
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
+    mcpServers: {
+      'filesystem': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-filesystem', '/var/log'],
+      },
+    },
   },
 
   plugins: [

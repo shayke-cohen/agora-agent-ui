@@ -1,6 +1,6 @@
 export default {
   name: 'ProjectPilot',
-  port: 3457,
+  port: 4568,
 
   agent: {
     systemPrompt: [
@@ -24,6 +24,12 @@ export default {
     ].join('\n'),
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
+    mcpServers: {
+      'memory': {
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-memory'],
+      },
+    },
   },
 
   plugins: [

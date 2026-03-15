@@ -1,0 +1,20 @@
+# Test: OpsConsole Demo UI
+# Suite: regression
+# Platform: web
+# Tags: demo, opsconsole, ui
+
+url: http://localhost:4569
+---
+- assertVisible:
+    text: "OpsConsole"
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- assertVisible:
+    text: "Send"
+- assertVisible:
+    text: "Service status"
+- assertVisible:
+    text: "Active incidents"
+- assertVisible:
+    text: "Check logs"
+- takeScreenshot: "opsconsole-home"

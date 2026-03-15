@@ -1,0 +1,20 @@
+# Test: ProjectPilot Demo UI
+# Suite: regression
+# Platform: web
+# Tags: demo, projectpilot, ui
+
+url: http://localhost:4568
+---
+- assertVisible:
+    text: "ProjectPilot"
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- assertVisible:
+    text: "Send"
+- assertVisible:
+    text: "Plan a sprint"
+- assertVisible:
+    text: "Break down a feature"
+- assertVisible:
+    text: "Show project status"
+- takeScreenshot: "projectpilot-home"

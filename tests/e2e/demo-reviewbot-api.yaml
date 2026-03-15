@@ -1,0 +1,54 @@
+# Test: ReviewBot Demo API Endpoints
+# Suite: regression
+# Platform: server
+# Tags: demo, reviewbot, api
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.status"
+    expected: "ok"
+
+- assertBody:
+    jsonPath: "$.mcpServers[0]"
+    expected: "filesystem"
+
+- request:
+    method: GET
+    url: /api/review-stats
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.reviews"
+    expected: 0
+
+- assertBody:
+    jsonPath: "$.issues"
+    expected: 0
+
+- assertResponseTime: 500
+
+- request:
+    method: GET
+    url: /api/config
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.branding.title"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.accent"
+    expected: "#58a6ff"
