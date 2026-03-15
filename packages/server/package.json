@@ -1,0 +1,23 @@
+{
+  "name": "@agora-agent/server",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Agora bridge server — HTTP + WebSocket + SSE hub with visual interceptor",
+  "main": "src/server.js",
+  "exports": {
+    ".": "./src/server.js",
+    "./visual-interceptor": "./src/visual-interceptor.js",
+    "./tier-manager": "./src/tier-manager.js",
+    "./router": "./src/router.js",
+    "./session-store": "./src/session-store.js"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@agora-agent/protocol": "0.1.0",
+    "@shaykec/agent-web": "^0.3.0",
+    "ws": "^8.16.0"
+  },
+  "optionalDependencies": {
+    "node-pty": "^1.1.0"
+  }
+}

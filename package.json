@@ -1,0 +1,25 @@
+{
+  "name": "agora-agent-ui",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Agora — a framework for building smart chat web apps powered by Claude Code CLI",
+  "type": "module",
+  "workspaces": [
+    "packages/protocol",
+    "packages/server",
+    "packages/canvas",
+    "packages/cli"
+  ],
+  "scripts": {
+    "dev": "node packages/cli/src/cli.js dev",
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
+  }
+}

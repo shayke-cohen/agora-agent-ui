@@ -1,0 +1,11 @@
+{
+  "name": "@agora-agent/protocol",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Message protocol for Agora agent apps — envelope format, message types, tier constants",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "license": "MIT"
+}
