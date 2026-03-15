@@ -2,11 +2,19 @@
   "name": "agora-agent",
   "version": "0.1.0",
   "type": "module",
-  "description": "CLI for Agora Agent UI — init, dev, build",
+  "description": "CLI for Agora Agent UI — init, dev, build smart chat web apps powered by Claude Code",
   "bin": {
     "agora-agent": "./src/cli.js"
   },
   "main": "src/cli.js",
+  "files": [
+    "src/cli.js"
+  ],
+  "keywords": ["agora", "agent", "cli", "claude", "ai", "chat", "web-app", "framework"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shayke-cohen/agora-agent-ui"
+  },
   "license": "MIT",
   "dependencies": {
     "@agora-agent/protocol": "0.1.0",

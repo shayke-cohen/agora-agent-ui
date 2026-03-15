@@ -1,0 +1,26 @@
+# Development
+.agora-sessions/
+tests/
+*.test.js
+*.test.jsx
+*.spec.js
+test-setup.js
+
+# Build artifacts
+packages/canvas/dist/
+
+# IDE
+.cursor/
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Docs (published separately)
+docs/
+examples/
+
+# Dev files
+dev-start.js
+vitest.config.js

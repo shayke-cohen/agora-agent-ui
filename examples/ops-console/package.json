@@ -1,0 +1,13 @@
+{
+  "name": "ops-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "OpsConsole — DevOps monitoring assistant (Agora demo)",
+  "scripts": {
+    "dev": "agora-agent dev"
+  },
+  "dependencies": {
+    "agora-agent": "^0.1.0"
+  }
+}

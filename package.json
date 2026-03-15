@@ -12,12 +12,17 @@
   ],
   "scripts": {
     "dev": "node packages/cli/src/cli.js dev",
+    "build": "npm run build --workspace=packages/canvas",
     "test": "vitest run && vitest run --config packages/canvas/vite.config.js",
     "test:unit": "vitest run",
     "test:components": "vitest run --config packages/canvas/vite.config.js",
     "test:integration": "vitest run packages/server/src/server.integration.test.js",
     "test:e2e": "echo 'E2E tests run via Argus MCP: test({ action: \"run\", pattern: \"tests/e2e/*.yaml\" })'",
     "test:watch": "vitest --watch"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shayke-cohen/agora-agent-ui"
   },
   "license": "MIT",
   "engines": {

@@ -11,6 +11,15 @@
     "./router": "./src/router.js",
     "./session-store": "./src/session-store.js"
   },
+  "files": [
+    "src/*.js"
+  ],
+  "keywords": ["agora", "agent", "server", "websocket", "sse", "bridge", "claude", "ai"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shayke-cohen/agora-agent-ui",
+    "directory": "packages/server"
+  },
   "license": "MIT",
   "dependencies": {
     "@agora-agent/protocol": "0.1.0",
