@@ -1,0 +1,28 @@
+# Test: Event POST Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, event, websocket
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: POST
+    url: /api/event
+    headers:
+      Content-Type: application/json
+    body:
+      v: 1
+      type: "chat:suggestions"
+      payload:
+        suggestions:
+          - label: "Test"
+            text: "Test suggestion"
+      source: "test"
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.ok"
+    expected: true
+
+- assertResponseTime: 500

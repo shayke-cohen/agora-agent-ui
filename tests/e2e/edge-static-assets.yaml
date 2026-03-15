@@ -1,0 +1,18 @@
+# Test: Static Assets Served
+# Suite: regression
+# Platform: server
+# Tags: static, assets, edge
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /
+
+- assertStatus: 200
+
+- assertHeader:
+    name: "content-type"
+    contains: "text/html"
+
+- assertResponseTime: 500

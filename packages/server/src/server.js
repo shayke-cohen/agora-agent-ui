@@ -15,6 +15,7 @@ import {
   PROTOCOL_VERSION, parseEnvelope, createEnvelope, serializeEnvelope,
   MSG_SYS_CONNECT, DEFAULT_PORT, MAX_LONG_POLL_TIMEOUT_MS,
   PLAYGROUND_EXEC_TIMEOUT_MS, PLAYGROUND_MAX_OUTPUT_BYTES,
+  registerTypes,
 } from '@agora-agent/protocol';
 
 import { TierManager, generateClientId, validateHandshake } from './tier-manager.js';
@@ -66,6 +67,10 @@ export function startServer(config = {}, options = {}) {
   const port = config.port || DEFAULT_PORT;
   const tierManager = new TierManager();
   const router = new EventRouter(tierManager);
+
+  if (config.messageTypes) {
+    registerTypes(config.messageTypes);
+  }
 
   const agentConfig = {
     cwd: process.cwd(),
@@ -268,6 +273,22 @@ function buildSystemPrompt(config) {
   return parts.join('\n');
 }
 
+function buildCanvasConfig(config) {
+  const canvas = config.canvas || {};
+  return {
+    name: config.name || 'Agora Agent',
+    theme: canvas.theme || 'dark',
+    accent: canvas.accent || '#58a6ff',
+    branding: canvas.branding || { title: config.name || 'Agora' },
+    welcome: canvas.welcome || null,
+    components: (canvas.components || []).map(c => ({
+      type: c.type,
+      url: c.url || null,
+      label: c.label || c.type,
+    })),
+  };
+}
+
 function handleRequest(req, res, ctx) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -308,10 +329,24 @@ function handleRequest(req, res, ctx) {
   }
   if (req.method === 'DELETE' && pathname === '/api/sessions') { const count = purgeStoredSessions(); ctx.agentServer.sessions.closeAll().catch(() => {}); sendJson(res, 200, { ok: true, deleted: count }); return; }
 
+  // Config endpoint for canvas SPA
+  if (req.method === 'GET' && pathname === '/api/config') {
+    const canvasConfig = buildCanvasConfig(ctx.config);
+    sendJson(res, 200, canvasConfig);
+    return;
+  }
+
   // Custom endpoints from config
+  const endpointCtx = {
+    tierManager: ctx.tierManager,
+    router: ctx.router,
+    sendJson: (status, data) => sendJson(res, status, data),
+    readBody: (cb) => readBody(req, cb),
+    config: ctx.config,
+  };
   for (const ep of ctx.customEndpoints) {
     if (req.method === (ep.method || 'GET').toUpperCase() && pathname === ep.path) {
-      ep.handler(req, res);
+      ep.handler(req, res, endpointCtx);
       return;
     }
   }

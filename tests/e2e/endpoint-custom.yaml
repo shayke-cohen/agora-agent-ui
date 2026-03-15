@@ -1,0 +1,22 @@
+# Test: Custom Endpoint (ReviewBot review-stats)
+# Suite: regression
+# Platform: server
+# Tags: api, custom, plugin
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /api/review-stats
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.reviews"
+    expected: 0
+
+- assertBody:
+    jsonPath: "$.issues"
+    expected: 0
+
+- assertResponseTime: 500

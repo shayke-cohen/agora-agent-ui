@@ -29,6 +29,33 @@ export default {
     { type: 'local', path: './skills' },
   ],
 
+  // Custom message types for this agent
+  messageTypes: {
+    'canvas:review-summary': { category: 'canvas' },
+  },
+
+  // Custom interceptors to extract review summaries from agent responses
+  interceptors: [
+    {
+      pattern: /<!-- review-summary: (\{[\s\S]*?\}) -->/g,
+      handler: (match, json) => ({
+        type: 'canvas:review-summary',
+        payload: JSON.parse(json),
+      }),
+    },
+  ],
+
+  // Custom endpoints
+  endpoints: [
+    {
+      method: 'GET',
+      path: '/api/review-stats',
+      handler: (req, res, ctx) => {
+        ctx.sendJson(200, { reviews: 0, issues: 0 });
+      },
+    },
+  ],
+
   canvas: {
     theme: 'dark',
     accent: '#58a6ff',

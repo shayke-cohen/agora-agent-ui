@@ -1,0 +1,17 @@
+# Test: Diagram Render Request
+# Suite: regression
+# Platform: web
+# Tags: diagram, mermaid, visual
+
+url: http://localhost:4567
+---
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- inputText:
+    selector: "textarea[placeholder='Type a message...']"
+    text: "Draw a simple flowchart diagram"
+- tapOn:
+    text: "Send"
+- assertNotVisible:
+    text: "Review a file"
+- takeScreenshot: "diagram-request"

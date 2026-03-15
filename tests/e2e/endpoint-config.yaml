@@ -1,0 +1,38 @@
+# Test: Config Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, config, canvas
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /api/config
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.theme"
+    expected: "dark"
+
+- assertBody:
+    jsonPath: "$.accent"
+    expected: "#58a6ff"
+
+- assertBody:
+    jsonPath: "$.branding.title"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.welcome.title"
+    expected: "ReviewBot"
+
+- assertBody:
+    jsonPath: "$.welcome.subtitle"
+    expected: "Paste code or point me to a file for review."
+
+- assertResponseTime: 500

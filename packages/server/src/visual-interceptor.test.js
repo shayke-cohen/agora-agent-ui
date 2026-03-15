@@ -133,6 +133,69 @@ describe('visual-interceptor', () => {
     });
   });
 
+  describe('extractAndRouteMedia', () => {
+    it('routes YouTube URL as canvas:html', () => {
+      const seenUrls = new Set();
+      const text = 'Check this out: https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(1);
+      const envelope = mockRouter.routeVisualCommand.mock.calls[0][0];
+      expect(envelope.type).toBe('canvas:html');
+      expect(envelope.payload.subtype).toBe('youtube');
+      expect(envelope.payload.html).toContain('youtube.com/embed/dQw4w9WgXcQ');
+    });
+
+    it('routes image URL as canvas:html', () => {
+      const seenUrls = new Set();
+      const text = 'Look at https://example.com/photo.png';
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(1);
+      const envelope = mockRouter.routeVisualCommand.mock.calls[0][0];
+      expect(envelope.payload.subtype).toBe('image');
+      expect(envelope.payload.html).toContain('photo.png');
+    });
+
+    it('skips URLs inside code fences', () => {
+      const seenUrls = new Set();
+      const text = '```\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ\n```';
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+
+    it('respects seenUrls deduplication', () => {
+      const seenUrls = new Set(['https://www.youtube.com/watch?v=dQw4w9WgXcQ']);
+      const text = 'Watch: https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+
+    it('stops at MAX_AUTO_MEDIA (3)', () => {
+      const seenUrls = new Set();
+      const text = [
+        'https://example.com/a.png',
+        'https://example.com/b.jpg',
+        'https://example.com/c.gif',
+        'https://example.com/d.webp',
+      ].join(' ');
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).toHaveBeenCalledTimes(3);
+    });
+
+    it('skips generic link URLs', () => {
+      const seenUrls = new Set();
+      const text = 'Visit https://example.com/docs for more info';
+      extractAndRouteMedia(text, mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+
+    it('handles null/empty input', () => {
+      const seenUrls = new Set();
+      extractAndRouteMedia(null, mockRouter, seenUrls);
+      extractAndRouteMedia('', mockRouter, seenUrls);
+      expect(mockRouter.routeVisualCommand).not.toHaveBeenCalled();
+    });
+  });
+
   describe('runCustomInterceptors', () => {
     it('runs custom interceptors and routes results', () => {
       const interceptors = [{

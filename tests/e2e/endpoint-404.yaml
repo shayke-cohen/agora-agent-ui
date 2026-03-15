@@ -1,0 +1,19 @@
+# Test: Unknown API Endpoint Returns SPA Fallback
+# Suite: regression
+# Platform: server
+# Tags: api, spa-fallback, edge
+#
+# Unknown routes return 200 with index.html (SPA routing).
+# This is expected behavior — the SPA handles client-side routing.
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /api/nonexistent-endpoint
+
+- assertStatus: 200
+
+- assertHeader:
+    name: "content-type"
+    contains: "text/html"

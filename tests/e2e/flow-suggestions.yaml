@@ -1,0 +1,20 @@
+# Test: Suggestion Chips Flow
+# Suite: regression
+# Platform: web
+# Tags: suggestions, chips, flow
+
+url: http://localhost:4567
+---
+- assertVisible:
+    text: "Review a file"
+- assertVisible:
+    text: "Best practices"
+- assertVisible:
+    text: "Security check"
+- tapOn:
+    text: "Best practices"
+- assertNotVisible:
+    text: "Review a file"
+- assertNotVisible:
+    text: "Security check"
+- takeScreenshot: "suggestion-clicked"

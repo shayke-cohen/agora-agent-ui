@@ -1,0 +1,14 @@
+# Test: Sessions Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, sessions
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /api/sessions
+
+- assertStatus: 200
+
+- assertResponseTime: 1000

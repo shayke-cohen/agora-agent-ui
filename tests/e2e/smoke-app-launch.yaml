@@ -1,0 +1,14 @@
+# Test: App Launch Smoke Test
+# Suite: regression
+# Platform: web
+# Tags: smoke, launch, critical
+
+url: http://localhost:4567
+---
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- assertVisible:
+    text: "Send"
+- assertVisible:
+    text: "ReviewBot"
+- takeScreenshot: "app-launch"

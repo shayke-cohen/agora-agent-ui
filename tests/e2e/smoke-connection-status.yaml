@@ -1,0 +1,12 @@
+# Test: WebSocket Connection Status
+# Suite: regression
+# Platform: web
+# Tags: smoke, websocket, connection
+
+url: http://localhost:4567
+---
+- waitFor:
+    selector: "div[title='Connected']"
+- assertVisible:
+    selector: "div[title='Connected']"
+- takeScreenshot: "connection-status"

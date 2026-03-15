@@ -1,0 +1,22 @@
+# Test: Health Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, health, critical
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.status"
+    expected: "ok"
+
+- assertBody:
+    jsonPath: "$.name"
+    expected: "ReviewBot"
+
+- assertResponseTime: 1000

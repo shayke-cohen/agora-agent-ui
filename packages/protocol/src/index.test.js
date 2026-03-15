@@ -122,6 +122,39 @@ describe('protocol', () => {
     });
   });
 
+  describe('getMessageTypes', () => {
+    it('returns object with all categories', () => {
+      const types = getMessageTypes();
+      expect(types).toHaveProperty('canvas');
+      expect(types).toHaveProperty('event');
+      expect(types).toHaveProperty('chat');
+      expect(types).toHaveProperty('session');
+      expect(types).toHaveProperty('system');
+      expect(Array.isArray(types.canvas)).toBe(true);
+      expect(types.canvas.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('parseEnvelope edge cases', () => {
+    it('rejects null input', () => {
+      const { valid, error } = parseEnvelope(null);
+      expect(valid).toBe(false);
+      expect(error).toBe('Envelope must be an object');
+    });
+
+    it('rejects numeric input', () => {
+      const { valid, error } = parseEnvelope(123);
+      expect(valid).toBe(false);
+      expect(error).toBe('Envelope must be an object');
+    });
+
+    it('rejects non-object payload', () => {
+      const { valid, error } = parseEnvelope({ v: 1, type: 'test', payload: 'string' });
+      expect(valid).toBe(false);
+      expect(error).toBe('Missing or invalid payload');
+    });
+  });
+
   describe('constants', () => {
     it('exports tier values', () => {
       expect(TIER_FULL).toBe(1);

@@ -1,0 +1,35 @@
+# Test: Config API Drives UI
+# Suite: regression
+# Platform: web
+# Tags: config, integration, critical
+
+url: http://localhost:4567
+---
+# Verify the API returns the config
+- request:
+    platform: server
+    method: GET
+    url: http://localhost:4567/api/config
+    capture:
+      brandingTitle: "$.branding.title"
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.branding.title"
+    expected: "ReviewBot"
+
+# Verify the UI reflects the config
+- assertVisible:
+    text: "ReviewBot"
+
+- assertVisible:
+    text: "Review a file"
+
+- assertVisible:
+    text: "Best practices"
+
+- assertVisible:
+    text: "Security check"
+
+- takeScreenshot: "config-to-ui"

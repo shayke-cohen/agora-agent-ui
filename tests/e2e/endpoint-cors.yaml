@@ -1,0 +1,24 @@
+# Test: CORS Headers
+# Suite: regression
+# Platform: server
+# Tags: api, cors, security
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /health
+
+- assertStatus: 200
+
+- assertHeader:
+    name: "access-control-allow-origin"
+    expected: "*"
+
+- assertHeader:
+    name: "access-control-allow-methods"
+    contains: "GET"
+
+- assertHeader:
+    name: "access-control-allow-methods"
+    contains: "POST"

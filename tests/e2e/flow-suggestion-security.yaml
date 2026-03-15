@@ -1,0 +1,16 @@
+# Test: Click "Security check" Suggestion
+# Suite: regression
+# Platform: web
+# Tags: suggestions, security, flow
+
+url: http://localhost:4567
+---
+- assertVisible:
+    text: "Security check"
+- tapOn:
+    text: "Security check"
+- assertNotVisible:
+    text: "Review a file"
+- assertNotVisible:
+    text: "Best practices"
+- takeScreenshot: "security-suggestion"

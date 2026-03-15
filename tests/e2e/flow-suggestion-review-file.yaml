@@ -1,0 +1,16 @@
+# Test: Click "Review a file" Suggestion
+# Suite: regression
+# Platform: web
+# Tags: suggestions, review, flow
+
+url: http://localhost:4567
+---
+- assertVisible:
+    text: "Review a file"
+- tapOn:
+    text: "Review a file"
+- assertNotVisible:
+    text: "Best practices"
+- assertNotVisible:
+    text: "Security check"
+- takeScreenshot: "review-file-suggestion"

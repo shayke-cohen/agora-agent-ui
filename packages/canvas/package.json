@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "description": "Agora visual canvas — React SPA with chat + composable visual panel",
+  "exports": {
+    ".": "./src/main.jsx",
+    "./registry": "./src/componentRegistry.js"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -19,7 +23,10 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^29.0.0",
     "vite": "^6.0.0"
   }
 }

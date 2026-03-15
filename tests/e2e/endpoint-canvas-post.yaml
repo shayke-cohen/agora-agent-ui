@@ -1,0 +1,28 @@
+# Test: Canvas POST Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, canvas, visual
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: POST
+    url: /api/canvas
+    headers:
+      Content-Type: application/json
+    body:
+      v: 1
+      type: "canvas:diagram"
+      payload:
+        code: "graph TD; A-->B; B-->C;"
+        title: "Test Diagram"
+      source: "test"
+      timestamp: 1710000000000
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.ok"
+    expected: true
+
+- assertResponseTime: 500

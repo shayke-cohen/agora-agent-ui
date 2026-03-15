@@ -1,0 +1,18 @@
+# Test: Tier Endpoint
+# Suite: regression
+# Platform: server
+# Tags: api, tier
+
+serverUrl: http://localhost:4567
+---
+- request:
+    method: GET
+    url: /api/tier
+
+- assertStatus: 200
+
+- assertBody:
+    jsonPath: "$.label"
+    contains: "Only"
+
+- assertResponseTime: 500

@@ -1,0 +1,18 @@
+# Test: Empty Message Not Sent
+# Suite: regression
+# Platform: web
+# Tags: chat, edge, validation
+
+url: http://localhost:4567
+---
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- tapOn:
+    text: "Send"
+- assertVisible:
+    text: "Review a file"
+- assertVisible:
+    text: "Best practices"
+- assertVisible:
+    text: "Security check"
+- takeScreenshot: "empty-send-no-change"

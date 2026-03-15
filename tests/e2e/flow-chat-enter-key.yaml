@@ -1,0 +1,16 @@
+# Test: Chat Send via Enter Key
+# Suite: regression
+# Platform: web
+# Tags: chat, keyboard, flow
+
+url: http://localhost:4567
+---
+- assertVisible:
+    selector: "textarea[placeholder='Type a message...']"
+- inputText:
+    selector: "textarea[placeholder='Type a message...']"
+    text: "Testing Enter key"
+- pressKey: "Enter"
+- assertNotVisible:
+    text: "Review a file"
+- takeScreenshot: "chat-enter-key"
