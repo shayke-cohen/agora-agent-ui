@@ -20,7 +20,7 @@ const { loadConfig, startServer } = await import(resolve(root, 'packages/server/
 
 const config = await loadConfig(configPath);
 
-startServer(config, {
+await startServer(config, {
   canvasDist,
   onReady: ({ port }) => {
     console.log(`  ${config.name || demoName} running on http://localhost:${port}`);

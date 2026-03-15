@@ -24,9 +24,9 @@ export default {
     tools: ['Bash(*)', 'Read', 'Write', 'Edit', 'Glob', 'Grep', 'Skill'],
     permissionMode: 'bypassPermissions',
     mcpServers: {
-      'filesystem': {
-        command: 'npx',
-        args: ['-y', '@modelcontextprotocol/server-filesystem', process.cwd()],
+      'agora-ping': {
+        command: 'node',
+        args: [new URL('./mcp-ping-server.js', import.meta.url).pathname],
       },
     },
   },

@@ -157,7 +157,7 @@ async function handleDev() {
 
   const config = await loadConfig(configPath);
 
-  startServer(config, {
+  await startServer(config, {
     onReady: ({ port }) => {
       console.log(`  Open http://localhost:${port} in your browser.\n`);
     },

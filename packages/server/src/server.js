@@ -31,6 +31,7 @@ import {
   deleteSession as deleteStoredSession, purgeAll as purgeStoredSessions,
   generateTitle,
 } from './session-store.js';
+import { bridgeMcpServers } from './mcp-bridge.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -63,7 +64,7 @@ export async function loadConfig(configPath) {
  * @param {function} [options.onReady] - Callback when server is listening
  * @param {function} [options.onTierChange] - Callback(oldTier, newTier)
  */
-export function startServer(config = {}, options = {}) {
+export async function startServer(config = {}, options = {}) {
   const port = config.port || DEFAULT_PORT;
   const tierManager = new TierManager();
   const router = new EventRouter(tierManager);
@@ -84,9 +85,15 @@ export function startServer(config = {}, options = {}) {
     agentConfig.plugins = config.plugins;
   }
 
+  // Bridge MCP servers: convert stdio configs to in-process SDK servers
+  let mcpCleanup = () => {};
   if (config.agent?.mcpServers && Object.keys(config.agent.mcpServers).length > 0) {
-    agentConfig.mcpServers = config.agent.mcpServers;
-    console.log(`  MCP servers configured: ${Object.keys(config.agent.mcpServers).join(', ')}`);
+    const { servers, cleanup } = await bridgeMcpServers(config.agent.mcpServers);
+    mcpCleanup = cleanup;
+    if (Object.keys(servers).length > 0) {
+      agentConfig.mcpServers = servers;
+      console.log(`  MCP servers ready: ${Object.keys(servers).join(', ')}`);
+    }
   }
 
   const autoRoutedMediaUrls = new Set();
@@ -132,7 +139,9 @@ export function startServer(config = {}, options = {}) {
                 updateStoredMeta(sid, { title: generateTitle(envelope.payload.text) });
               }
             } else if (envelope.type === 'chat:tool-use') {
-              appendStoredMessage(sid, { role: 'tool-use', text: `Using ${envelope.payload?.toolName || 'tool'}`, data: envelope.payload, timestamp: envelope.timestamp || Date.now() });
+              const tn = envelope.payload?.toolName || 'tool';
+              console.log(`  [tool-use] ${tn}`);
+              appendStoredMessage(sid, { role: 'tool-use', text: `Using ${tn}`, data: envelope.payload, timestamp: envelope.timestamp || Date.now() });
             } else if (envelope.type === 'chat:tool-result') {
               appendStoredMessage(sid, { role: 'tool-result', data: envelope.payload, timestamp: envelope.timestamp || Date.now() });
             }
@@ -243,6 +252,7 @@ export function startServer(config = {}, options = {}) {
   });
 
   const close = () => {
+    mcpCleanup();
     agentServer.close().catch(() => {});
     router.cancelWaiters();
     tierManager.stopHeartbeat();

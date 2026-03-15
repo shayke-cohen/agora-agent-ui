@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import http from 'http';
 
+vi.mock('./mcp-bridge.js', () => ({
+  bridgeMcpServers: async (mcpServers) => ({
+    servers: mcpServers,
+    cleanup: () => {},
+  }),
+}));
+
 vi.mock('@shaykec/agent-web/server', () => ({
   createAgentServer: () => ({
     middleware: () => (req, res) => {
@@ -58,8 +65,8 @@ describe('Server Integration', () => {
   beforeAll(async () => {
     const { startServer } = await import('./server.js');
     port = 10000 + Math.floor(Math.random() * 50000);
-    await new Promise((resolve) => {
-      serverInstance = startServer(
+    await new Promise(async (resolve) => {
+      serverInstance = await startServer(
         {
           name: 'Test Agent',
           port,
