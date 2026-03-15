@@ -86,6 +86,7 @@ export function startServer(config = {}, options = {}) {
 
   if (config.agent?.mcpServers && Object.keys(config.agent.mcpServers).length > 0) {
     agentConfig.mcpServers = config.agent.mcpServers;
+    console.log(`  MCP servers configured: ${Object.keys(config.agent.mcpServers).join(', ')}`);
   }
 
   const autoRoutedMediaUrls = new Set();
