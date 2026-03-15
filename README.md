@@ -25,7 +25,7 @@ agora.config.js  →  Bridge Server  →  React Canvas
 2. Add skills as Markdown files in a `skills/` directory
 3. Run `agora-agent dev` — opens a web app with chat + visual canvas
 
-The framework handles everything else: WebSocket connections, session persistence, message routing, markdown rendering, Mermaid diagrams, inline controls, and the visual panel.
+The framework handles everything else: WebSocket connections, session persistence, message routing, markdown rendering, Mermaid diagrams, inline controls, the visual panel, and agent context via auto-generated `CLAUDE.md`.
 
 ## Architecture
 
@@ -148,6 +148,24 @@ The visual panel ships with three default components:
 | `canvas:web-embed` | WebEmbed | Iframe for external URLs |
 
 These are triggered automatically when the agent outputs Mermaid code blocks, HTML content, or URLs. The visual interceptor on the server scans agent responses and routes them as structured messages.
+
+Additional built-in canvas commands:
+
+| Message Type | Trigger | Description |
+|-------------|---------|-------------|
+| `canvas:celebrate` | `<!-- canvas:celebrate: {...} -->` | Confetti/celebration animations |
+| `canvas:dashboard` | `<!-- canvas:dashboard: {...} -->` | Progress dashboards |
+| `canvas:code` | `<!-- canvas:code: {...} -->` | Code playground with tests |
+
+Media URLs (YouTube, Vimeo, images, videos) in agent responses are auto-detected and routed to the visual panel.
+
+## Agent Context (`CLAUDE.md`)
+
+The Claude Code SDK reads a `CLAUDE.md` file from the project directory at startup. Agora uses this to give the agent awareness of its visual capabilities.
+
+- **`agora init`** generates a `CLAUDE.md` with the app name, a quick reference table, and a pointer to the `agora-canvas` skill for the full API
+- **Server startup** auto-generates a minimal `CLAUDE.md` if one is missing, so existing projects also benefit
+- The `agora-canvas` skill (`skills/agora-canvas/SKILL.md`) contains the comprehensive reference for all visual commands, inline components, interactive patterns, and ordering rules
 
 ## Custom Components
 
@@ -304,7 +322,7 @@ messageTypes: {
 ## Testing
 
 ```bash
-npm test              # All unit + component tests (174 tests)
+npm test              # All unit + component + integration tests (169 tests)
 npm run test:unit     # Server + protocol unit tests
 npm run test:components  # React component tests (JSDOM)
 npm run test:integration # Server integration tests

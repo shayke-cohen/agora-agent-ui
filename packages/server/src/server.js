@@ -6,7 +6,7 @@
  */
 
 import { createServer } from 'http';
-import { readFileSync, existsSync, mkdirSync, createReadStream } from 'fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, createReadStream } from 'fs';
 import { join, dirname, extname } from 'path';
 import { fileURLToPath } from 'url';
 import { WebSocketServer } from 'ws';
@@ -73,6 +73,8 @@ export async function startServer(config = {}, options = {}) {
   if (config.messageTypes) {
     registerTypes(config.messageTypes);
   }
+
+  ensureClaudeMd(config);
 
   const agentConfig = {
     cwd: process.cwd(),
@@ -273,11 +275,18 @@ function buildSystemPrompt(config) {
   if (config.agent?.systemPrompt) parts.push(config.agent.systemPrompt);
 
   parts.push('');
-  parts.push('SMART BUTTONS:');
-  parts.push('- Embed inline buttons: <!-- buttons: {"id":"x","type":"single","prompt":"Pick:","options":[{"label":"A","value":"a"}]} -->');
-  parts.push('- Types: "single", "multi", "rating".');
+  parts.push('VISUAL CANVAS COMMANDS (appear in the visual panel):');
+  parts.push('- Diagrams: use ```mermaid fenced blocks — auto-routed to the visual panel with zoom/pan controls.');
+  parts.push('  Or explicit: <!-- canvas:diagram: {"format":"mermaid","content":"graph TD\\n  A-->B"} -->');
+  parts.push('- Rich HTML: <!-- canvas:html: {"html":"<div>...</div>"} -->');
+  parts.push('- Web embeds: <!-- canvas:web-embed: {"url":"https://example.com","title":"Docs"} -->');
+  parts.push('- Celebrations: <!-- canvas:celebrate: {"type":"xp","xpAwarded":20} -->');
+  parts.push('- Dashboard: <!-- canvas:dashboard: {"progress":{"completed":5,"total":10}} -->');
+  parts.push('- Code playground: <!-- canvas:code: {"language":"js","code":"...","tests":[...]} -->');
   parts.push('');
-  parts.push('INLINE BLOCKS:');
+  parts.push('INLINE CHAT COMPONENTS (render inside chat bubbles):');
+  parts.push('- Buttons: <!-- buttons: {"id":"x","type":"single","prompt":"Pick:","options":[{"label":"A","value":"a"}]} -->');
+  parts.push('  Types: "single", "multi", "rating".');
   parts.push('- Lists: <!-- list: {"id":"x","style":"cards","items":[{"title":"T","description":"D"}]} -->');
   parts.push('- Progress: <!-- progress: {"id":"x","current":3,"total":7,"style":"bar"} -->');
   parts.push('- Cards: <!-- card: {"id":"x","type":"tip","title":"T","content":"text"} -->');
@@ -287,10 +296,58 @@ function buildSystemPrompt(config) {
   parts.push('SUGGESTIONS:');
   parts.push('- Suggestion chips: <!-- suggestions: [{"label":"Option","text":"message to send"}] -->');
   parts.push('');
-  parts.push('DIAGRAMS:');
-  parts.push('- Mermaid diagrams auto-appear on the visual canvas when you use ```mermaid fenced blocks.');
+  parts.push('MEDIA AUTO-ROUTING:');
+  parts.push('- YouTube, Vimeo, image, and video URLs in your text are auto-detected and routed to the visual panel.');
+  parts.push('');
+  parts.push('AUTO-ENHANCEMENT:');
+  parts.push('- Blockquote tips (> **Pro Tip:** ...) and warnings (> **Warning:** ...) auto-convert to rich cards.');
+  parts.push('- Bold-title lists auto-convert to styled list components.');
+  parts.push('- These only trigger when no explicit smart components are present in the message.');
 
   return parts.join('\n');
+}
+
+/**
+ * Write a minimal CLAUDE.md to the project cwd if one doesn't exist.
+ * The SDK reads this file automatically via settingSources: ['user', 'project'].
+ */
+export function ensureClaudeMd(config) {
+  const claudePath = join(process.cwd(), 'CLAUDE.md');
+  if (existsSync(claudePath)) return false;
+
+  const name = config.name || 'Agora Agent';
+  const content = `# ${name}
+
+You are the AI agent powering **${name}**. This file is automatically loaded by the Claude Code SDK.
+
+## Visual Capabilities
+
+You have a rich visual canvas alongside the chat panel. For the full API reference, read the **agora-canvas** skill:
+
+\`\`\`
+Read skills/agora-canvas/SKILL.md
+\`\`\`
+
+### Quick Reference
+
+- Mermaid diagrams: use \\\`\\\`\\\`mermaid fenced blocks (auto-routed to visual panel)
+- Rich HTML / images / videos: \`<!-- canvas:html: {...} -->\`
+- Web embeds: \`<!-- canvas:web-embed: {...} -->\`
+- Celebrations: \`<!-- canvas:celebrate: {...} -->\`
+- Buttons: \`<!-- buttons: {...} -->\` (single/multi/rating)
+- Lists / Cards / Progress / Steps: \`<!-- list/card/progress/steps: {...} -->\`
+- Suggestion chips: \`<!-- suggestions: [...] -->\` (always last)
+- Media URLs (YouTube, Vimeo, images, videos) are auto-detected
+- Blockquote tips and warnings auto-convert to rich cards
+`;
+
+  try {
+    writeFileSync(claudePath, content);
+    console.log('  Generated CLAUDE.md for agent context');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function buildCanvasConfig(config) {

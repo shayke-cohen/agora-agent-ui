@@ -17,10 +17,14 @@ cd my-agent
 This creates:
 ```
 my-agent/
-  agora.config.js      # Agent configuration
-  skills/hello/SKILL.md # Example skill
-  package.json          # Dependencies
+  agora.config.js              # Agent configuration
+  CLAUDE.md                    # Agent context (auto-loaded by SDK)
+  skills/hello/SKILL.md        # Example skill
+  skills/agora-canvas/SKILL.md # Canvas API reference skill
+  package.json                 # Dependencies
 ```
+
+The `CLAUDE.md` file is automatically loaded by the Claude Code SDK at startup, giving the agent awareness of its visual capabilities. If you delete it, the server will regenerate a minimal version on next startup.
 
 ## 2. Configure Your Agent
 

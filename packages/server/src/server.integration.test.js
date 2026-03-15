@@ -1,5 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import http from 'http';
+import { mkdtempSync, rmSync, existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 vi.mock('./mcp-bridge.js', () => ({
   bridgeMcpServers: async (mcpServers) => ({
@@ -270,5 +273,49 @@ describe('Server Integration', () => {
     expect(isTypeInCategory('canvas:custom-viz', 'canvas')).toBe(true);
     expect(isKnownType('event:custom-action')).toBe(true);
     expect(isTypeInCategory('event:custom-action', 'event')).toBe(true);
+  });
+});
+
+describe('ensureClaudeMd', () => {
+  let tempDir;
+  let originalCwd;
+
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), 'agora-claudemd-test-'));
+    originalCwd = process.cwd();
+    process.chdir(tempDir);
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+
+  it('creates CLAUDE.md when missing', async () => {
+    const { ensureClaudeMd } = await import('./server.js');
+    const result = ensureClaudeMd({ name: 'TestBot' });
+    expect(result).toBe(true);
+    expect(existsSync(join(tempDir, 'CLAUDE.md'))).toBe(true);
+    const content = readFileSync(join(tempDir, 'CLAUDE.md'), 'utf-8');
+    expect(content).toContain('# TestBot');
+    expect(content).toContain('agora-canvas');
+    expect(content).toContain('canvas:html');
+  });
+
+  it('uses default name when config.name is not set', async () => {
+    const { ensureClaudeMd } = await import('./server.js');
+    ensureClaudeMd({});
+    const content = readFileSync(join(tempDir, 'CLAUDE.md'), 'utf-8');
+    expect(content).toContain('# Agora Agent');
+  });
+
+  it('does not overwrite existing CLAUDE.md', async () => {
+    const { writeFileSync: wfs } = await import('fs');
+    wfs(join(tempDir, 'CLAUDE.md'), '# Custom content');
+    const { ensureClaudeMd } = await import('./server.js');
+    const result = ensureClaudeMd({ name: 'TestBot' });
+    expect(result).toBe(false);
+    const content = readFileSync(join(tempDir, 'CLAUDE.md'), 'utf-8');
+    expect(content).toBe('# Custom content');
   });
 });

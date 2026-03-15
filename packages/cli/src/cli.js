@@ -154,6 +154,42 @@ graph LR
     writeFileSync(canvasSkillDst, '# Agora Canvas API\\n\\nSee https://github.com/shayke-cohen/agora-agent-ui for the full canvas API reference.\\n');
   }
 
+  writeFileSync(join(targetDir, 'CLAUDE.md'), `# ${name}
+
+You are the AI agent powering **${name}**. This file is automatically loaded by the Claude Code SDK at startup.
+
+## Visual Capabilities
+
+You have a rich visual canvas alongside the chat panel. Use it to show diagrams, images, videos, dashboards, and interactive components.
+
+For the full API reference — all canvas commands, inline components, interactive patterns, and ordering rules — read the **agora-canvas** skill:
+
+\`\`\`
+Read skills/agora-canvas/SKILL.md
+\`\`\`
+
+### Quick Reference
+
+| Command | Where | How |
+|---|---|---|
+| Mermaid diagrams | Visual panel | \\\`\\\`\\\`mermaid fenced blocks (auto-routed) |
+| Rich HTML / images / videos | Visual panel | \`<!-- canvas:html: {...} -->\` |
+| Web embeds | Visual panel | \`<!-- canvas:web-embed: {...} -->\` |
+| Celebrations | Visual panel | \`<!-- canvas:celebrate: {...} -->\` |
+| Buttons (single/multi/rating) | Chat bubble | \`<!-- buttons: {...} -->\` |
+| Lists / Cards / Progress / Steps | Chat bubble | \`<!-- list/card/progress/steps: {...} -->\` |
+| Suggestion chips | Bottom of chat | \`<!-- suggestions: [...] -->\` |
+
+### Conventions
+
+- Use HTML comment syntax for all structured components
+- Canvas commands are stripped from displayed text — the user only sees the rendered component
+- Place suggestion chips last in every response
+- Media URLs (YouTube, Vimeo, images, videos) are auto-detected and routed to the visual panel
+- Blockquote tips (\`> **Pro Tip:** ...\`) and warnings auto-convert to rich cards
+- Use \`curl POST /api/canvas\` with \`await\` for interactive commands that need a user response
+`);
+
   writeFileSync(join(targetDir, 'package.json'), JSON.stringify({
     name,
     version: '0.1.0',
@@ -170,6 +206,7 @@ graph LR
   console.log(`
   Created ${name}/ with:
     agora.config.js           — Agent configuration
+    CLAUDE.md                 — Agent context (auto-loaded by SDK)
     skills/hello/             — Example skill
     skills/agora-canvas/      — Canvas API reference skill
     package.json              — Project dependencies

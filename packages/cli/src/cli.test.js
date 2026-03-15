@@ -46,6 +46,18 @@ describe('CLI init command', () => {
     expect(config).toContain('plugins');
   });
 
+  it('generates CLAUDE.md with project name', () => {
+    execSync(`node ${cliPath} init doc-bot`, { cwd: tempDir, stdio: 'pipe' });
+    const claudePath = join(tempDir, 'doc-bot', 'CLAUDE.md');
+    expect(existsSync(claudePath)).toBe(true);
+    const content = readFileSync(claudePath, 'utf-8');
+    expect(content).toContain('# doc-bot');
+    expect(content).toContain('agora-canvas');
+    expect(content).toContain('canvas:html');
+    expect(content).toContain('canvas:web-embed');
+    expect(content).toContain('suggestions');
+  });
+
   it('rejects existing directory', () => {
     execSync(`node ${cliPath} init my-agent`, { cwd: tempDir, stdio: 'pipe' });
     try {

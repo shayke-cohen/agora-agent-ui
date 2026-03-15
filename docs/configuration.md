@@ -301,6 +301,23 @@ Each suggestion has:
 - `label` — Button text shown to the user
 - `text` — Message sent when clicked
 
+## Agent Context (`CLAUDE.md`)
+
+The Claude Code SDK automatically reads `CLAUDE.md` from the project directory. Agora generates this file to give the agent awareness of its visual capabilities.
+
+**Auto-generation behavior:**
+- `agora init` creates a `CLAUDE.md` with the app name, quick reference, and a pointer to `skills/agora-canvas/SKILL.md`
+- If `CLAUDE.md` is missing at server startup, a minimal version is auto-generated
+- Existing `CLAUDE.md` files are never overwritten
+
+**What it provides to the agent:**
+- Awareness of all canvas visual commands (diagrams, HTML, web embeds, celebrations, dashboards, code playgrounds)
+- Awareness of inline chat components (buttons, lists, cards, progress, steps, suggestions)
+- Pointer to the `agora-canvas` skill for the full API reference
+- Key conventions (media auto-routing, auto-enhancement, component ordering)
+
+You can customize `CLAUDE.md` to add project-specific instructions. The server will not overwrite it once it exists.
+
 ## Environment
 
 The config file is a standard ES module. You can use environment variables, dynamic imports, or any Node.js API:
